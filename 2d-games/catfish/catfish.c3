@@ -55,9 +55,9 @@ fn void draw_game_board() {
     rl::drawText("Catfish Bouncer!", 20, 20, 20, TXT_COLOR);
     rl::drawText(string::tformat_zstr("fps: %d", (int)( 1 / game_data.t_delta )), 20, 40, 20, TXT_COLOR);
     rl::drawText(string::tformat_zstr("clock: %f", libc::clock() / 1000.0 - game_data.t_base ), 20, 60, 20, TXT_COLOR);
-    rl::drawCircle(XRES_HALF, YRES_HALF, 30, CAT_COLOR);
     
     // draw cat
+    rl::drawCircle(XRES_HALF, YRES_HALF, 30, CAT_COLOR);
     float w = 15;
     float h = 50;
     rl::drawTriangle({XRES_HALF, YRES_HALF}, {XRES_HALF - w, YRES_HALF - h}, {XRES_HALF - w - w, YRES_HALF}, CAT_COLOR);
