@@ -1,0 +1,18 @@
+{
+  "langrev": "1",
+  "warnings":  [ "no-unused" ],
+  "dependency-search-paths":  [ "." ],
+  "dependencies":  [ "raylib55" ],
+  "authors":  [ "Syn9" ],
+  "version": "1.0.0",
+  "sources":  [ "phoenix.c3" ],
+  "output": "build",
+  "target": "windows-x64",
+  "targets": {
+    "catfish": {
+      "type": "executable"
+    }
+  },
+  "cpu": "generic",
+  "opt": "O0"
+}
