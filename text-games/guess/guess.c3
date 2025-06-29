@@ -7,7 +7,7 @@ import std::io;
 import std::math::random;
 
 fn int util_rand_range(int lhs, int rhs) {
-	return lhs + rand(rhs - lhs); // [lhs, rhs)
+    return lhs + rand(rhs - lhs); // [lhs, rhs)
 }
 
 //-----------------------------------------------------------------------------
@@ -15,16 +15,16 @@ fn int util_rand_range(int lhs, int rhs) {
 //-----------------------------------------------------------------------------
 
 fn void main() {
-	// state
+    // state
     int tries = 6;
     int secret = util_rand_range(1, 19 + 1);
 	
-	// game loop
+    // game loop
     while (tries > 0) {
         io::printfn("Enter a guess between 0 and 20, %d tries remaining", tries);
         
-		int? guess = io::treadline().to_int();
-		if (catch guess) { continue; }
+        int? guess = io::treadline().to_int();
+        if (catch guess) { continue; }
         if (guess < secret) {
             io::printfn("Too Small");
         }
