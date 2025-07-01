@@ -97,10 +97,8 @@ struct Vec2i {
 }
 
 struct Projectile_s {
-    float px;
-    float py;
-    float vx;
-    float vy;
+	float[<2>] p;
+	float[<2>] v;
     bool active;
 }
 
@@ -164,9 +162,7 @@ fn void ui_draw() {
             shake_sound_played = true;
             found_tears = true;
             rl::playSound(snd_levelup);
-            note.txt = "Found Phoenix Tears!";
-            note.color = CYAN;
-            note.timer = 999.00;
+            add_note("Found Phoenix Tears!", CYAN, 999);
         }
         if (shake_sound_played) {
             t_shake_move = t_shake_move - dt;
@@ -203,25 +199,25 @@ fn void ui_draw() {
     int tx = 0;
     int ty = 5;
     if (found_shield) {
-        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 208 * SCALE, ( YRES - 32 ) * SCALE, (float)SCALE_8 * 2, (float)SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
+        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 208 * SCALE, ( YRES - 32 ) * SCALE, SCALE_8 * 2, SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
     }
     tx = 1;
     if (found_helmet) {
-        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 224 * SCALE, ( YRES - 32 ) * SCALE, (float)SCALE_8 * 2, (float)SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
+        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 224 * SCALE, ( YRES - 32 ) * SCALE, SCALE_8 * 2, SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
     }
     tx = 2;
     if (found_mail) {
-        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 240 * SCALE, ( YRES - 32 ) * SCALE, (float)SCALE_8 * 2, (float)SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
+        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 240 * SCALE, ( YRES - 32 ) * SCALE, SCALE_8 * 2, SCALE_8 * 2, 0, 0, 0, 128, 0, 255, 255);
     }
     tx = 7;
     ty = 6;
     if (found_key) {
-        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 256 * SCALE, ( YRES - 32 ) * SCALE, (float)SCALE_8 * 2, (float)SCALE_8 * 2, 0, 0, 0, 255, 255, 0, 255);
+        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 256 * SCALE, ( YRES - 32 ) * SCALE, SCALE_8 * 2, SCALE_8 * 2, 0, 0, 0, 255, 255, 0, 255);
     }
     tx = 7;
     ty = 7;
     if (found_tears) {
-        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 256 * SCALE, ( YRES - 32 ) * SCALE, (float)SCALE_8 * 2, (float)SCALE_8 * 2, 0, 0, 0, 32, 192, 255, 255);
+        myDrawTextureProRGBA(icons, (float)tx * 8, (float)ty * 8, 8, 8, 256 * SCALE, ( YRES - 32 ) * SCALE, SCALE_8 * 2, SCALE_8 * 2, 0, 0, 0, 32, 192, 255, 255);
     }
     if (!game_win && !screen_shake) {
         t_game = rl::getTime() - t_clock;
@@ -229,10 +225,10 @@ fn void ui_draw() {
 	
     String time = "GameTime: ";
     int m = (int)(t_game / 60.0);
-    int s = (int)(t_game - (double)m * 60.0);
+    int s = (int)(t_game - m * 60.0);
     time = string::tformat("%s%d:", time, m);
     if (s < 10) {
-        time = string::tformat("%s0", time);
+        time = time.tconcat("0");
     }
     time = string::tformat("%s%d", time, s);
     draw_text_sm(208 * SCALE, ( YRES - 10 ) * SCALE, time, rl::GRAY);
@@ -249,6 +245,10 @@ fn void ui_draw() {
         draw_text(0, ( YRES - 16 ) * SCALE, string::tformat("> %s", note.txt), color);
     }
     else {
+    	if (note.txt) {
+    		free(note.txt); // We have to free the memory for the note.
+    		note.txt = "";
+    	}
         draw_text(0, ( YRES - 16 ) * SCALE, ">", DARKDARKGRAY);
     }
 	
@@ -305,16 +305,13 @@ fn void ui_draw() {
         draw_text(( XRES_HALF + 234 ) * SCALE, ( YRES - 30 ) * SCALE, "M:", rl::GREEN);
         draw_text(( XRES_HALF + 134 ) * SCALE, ( YRES - 15 ) * SCALE, "C:", rl::GREEN);
     }
-	
-    if (INTRO == menu) {
-        draw_intro();
-    }
-    else if (CONTROLS == menu) {
-        draw_controls();
-    }
-    else if (WIN == menu) {
-        draw_win();
-    }
+
+	switch (menu) {
+		case INTRO:    draw_intro();
+		case CONTROLS: draw_controls();
+		case WIN:      draw_win();
+		default:       break;
+	}
 }
 
 fn void draw_house() {
@@ -382,36 +379,38 @@ fn void draw_win() {
 }
 
 fn void add_note(String text, rl::Color color, float cooldown) {
-    note.txt = text;
+	if (note.txt) free(note.txt);
+    note.txt = text.copy(mem);
     note.color = color;
     note.timer = cooldown;
 }
 
-fn void draw_text(int x, int y, String txt, rl::Color color) {
-    rl::drawTextEx(fnt, string::tformat_zstr("%s", txt), (rl::Vector2){x, y}, 15 * SCALE, 1, color);
+fn void draw_text(int x, int y, String txt, rl::Color color) => @pool() {
+
+    rl::drawTextEx(fnt, txt.zstr_tcopy(), {x, y}, 15 * SCALE, 1, color);
 }
 
-fn void draw_text_center(int x, int y, String txt, rl::Color color) {
-    int m = (int)rl::measureTextEx(fnt, string::tformat_zstr("%s", txt), 15 * SCALE, 1).x;
+fn void draw_text_center(int x, int y, String txt, rl::Color color) => @pool() {
+    int m = (int)rl::measureTextEx(fnt, txt.zstr_tcopy(), 15 * SCALE, 1).x;
     draw_text(x - m / 2, y, txt, color);
 }
 
-fn void draw_text_right(int x, int y, String txt, rl::Color color) {
-    int m = (int)rl::measureTextEx(fnt, string::tformat_zstr("%s", txt), 15 * SCALE, 1).x;
+fn void draw_text_right(int x, int y, String txt, rl::Color color) => @pool() {
+    int m = (int)rl::measureTextEx(fnt, txt.zstr_tcopy(), 15 * SCALE, 1).x;
     draw_text(x - m, y, txt, color);
 }
 
-fn void draw_text_sm(int x, int y, String txt, rl::Color color) {
-    rl::drawTextEx(fnt_sm, string::tformat_zstr("%s", txt), (rl::Vector2){x, y}, (float)SCALE_8, 0, color);
+fn void draw_text_sm(int x, int y, String txt, rl::Color color) => @pool() {
+    rl::drawTextEx(fnt_sm, txt.zstr_tcopy(), {x, y}, SCALE_8, 0, color);
 }
 
-fn void draw_text_sm_center(int x, int y, String txt, rl::Color color) {
-    int m = (int)rl::measureTextEx(fnt_sm, string::tformat_zstr("%s", txt), (float)SCALE_8, 0).x;
+fn void draw_text_sm_center(int x, int y, String txt, rl::Color color) => @pool() {
+    int m = (int)rl::measureTextEx(fnt_sm, txt.zstr_tcopy(), (float)SCALE_8, 0).x;
     draw_text_sm(x - m / 2, y, txt, color);
 }
 
-fn void draw_text_sm_right(int x, int y, String txt, rl::Color color) {
-    int m = (int)rl::measureTextEx(fnt_sm, string::tformat_zstr("%s", txt), (float)SCALE_8, 0).x;
+fn void draw_text_sm_right(int x, int y, String txt, rl::Color color) => @pool() {
+    int m = (int)rl::measureTextEx(fnt_sm, txt.zstr_tcopy(), (float)SCALE_8, 0).x;
     draw_text_sm(x - m, y, txt, color);
 }
 
@@ -514,7 +513,7 @@ fn void entity_draw_all() {
         }
     }
     if (magic_ball.active) {
-        myDrawTexturePro(icons, 6 * 8, 6 * 8, 8, 8, (float)magic_ball.px * (float)SCALE_8 + (float)shake_x, (float)magic_ball.py * (float)SCALE_8 + (float)shake_y, (float)SCALE_8, (float)SCALE_8, 0, 0, 0, magic[util_rand_range(0, 5)]);
+        myDrawTexturePro(icons, 6 * 8, 6 * 8, 8, 8, (float)magic_ball.p.x * (float)SCALE_8 + (float)shake_x, (float)magic_ball.p.y * (float)SCALE_8 + (float)shake_y, (float)SCALE_8, (float)SCALE_8, 0, 0, 0, magic[util_rand_range(0, 5)]);
     }
     if (0 < entities[0].health) {
         entity_draw_player();
@@ -538,16 +537,16 @@ fn void entity_move(int eidx, Enums move_dir) {
     int ix = entities[eidx].ix;
     int iy = entities[eidx].iy;
     int idx = iy * MAP_WIDTH + ix;
-    if (MOVE_UP == move_dir && iy > 0 && 3 > board[idx - MAP_WIDTH]) {
+    if (move_dir == MOVE_UP  && iy > 0 && 3 > board[idx - MAP_WIDTH]) {
         iy = iy - 1;
     }
-    else if (MOVE_DOWN == move_dir && iy < MAP_HEIGHT - 1 && 3 > board[idx + MAP_WIDTH]) {
+    else if (move_dir == MOVE_DOWN && iy < MAP_HEIGHT - 1 && 3 > board[idx + MAP_WIDTH]) {
         iy = iy + 1;
     }
-    else if (MOVE_LEFT == move_dir && ix > 0 && 3 > board[idx - 1]) {
+    else if (move_dir == MOVE_LEFT  && ix > 0 && 3 > board[idx - 1]) {
         ix = ix - 1;
     }
-    else if (MOVE_RIGHT == move_dir && ix < MAP_WIDTH - 1 && 3 > board[idx + 1]) {
+    else if (move_dir == MOVE_RIGHT  && ix < MAP_WIDTH - 1 && 3 > board[idx + 1]) {
         ix = ix + 1;
     }
     int new_idx = iy * MAP_WIDTH + ix;
@@ -568,9 +567,7 @@ fn void entity_move(int eidx, Enums move_dir) {
             if (0 > entities[i].skip_update && entities[i].block_movement && new_idx == entities[i].iy * MAP_WIDTH + entities[i].ix) {
                 if (0 == eidx && 0 > entities[eidx].cooldown) {
                     entities[i].health = entities[i].health - 1;
-                    note.txt = "Hit Beast for 1 dmg!";
-                    note.color = rl::GRAY;
-                    note.timer = 5.00;
+                    add_note("Hit Beast for 1 dmg!", rl::GRAY, 5.00);
                     entities[0].kx = ( ix - entities[eidx].ix ) * 8;
                     entities[0].ky = ( iy - entities[eidx].iy ) * 8;
                     entities[0].cooldown = 0.30;
@@ -578,9 +575,7 @@ fn void entity_move(int eidx, Enums move_dir) {
                     if (0 == entities[i].health) {
                         entities[i].sprite = 39;
                         entities[i].block_movement = false;
-                        note.txt = "Beast fell!";
-                        note.color = rl::LIGHTGRAY;
-                        note.timer = 5.00;
+	                    add_note("Beast fell!", rl::LIGHTGRAY, 5.00);
                     }
                 }
                 ix = entities[eidx].ix;
@@ -665,11 +660,9 @@ fn void entity_update_all() {
     }
 	
     if (magic_ball.active) {
-        magic_ball.px = magic_ball.px + magic_ball.vx * (float)t_delta;
-        magic_ball.py = magic_ball.py + magic_ball.vy * (float)t_delta;
-        int px = (int)(magic_ball.px + 0.50);
-        int py = (int)(magic_ball.py + 0.50);
-        int idx = py * MAP_WIDTH + px;
+    	magic_ball.p += magic_ball.v * (float)t_delta;
+    	int[<2>] p = (int[<2>])(magic_ball.p + 0.5);
+        int idx = p.y * MAP_WIDTH + p.x;
         if (- 1 != board[idx]) {
             magic_ball.active = false;
         }
@@ -694,22 +687,18 @@ fn void entity_update_all() {
 	
     for (int i = 1; i < num_entities; i++) {
         if (0 < entities[i].health && magic_ball.active) {
-            float dx = entities[i].px - magic_ball.px;
-            float dy = entities[i].py - magic_ball.py;
+            float dx = entities[i].px - magic_ball.p.x;
+            float dy = entities[i].py - magic_ball.p.y;
             if ((float)math::sqrt((double)(dx * dx + dy * dy)) < 0.50) {
                 int dmg = 2 * entities[0].level;
                 entities[i].health = max(0, entities[i].health - dmg);
-                note.txt = string::tformat("Hit Beast for %d dmg!", dmg);
-                note.color = rl::GRAY;
-                note.timer = 5.00;
+                add_note(string::tformat("Hit Beast for %d dmg!", dmg), rl::GRAY, 5);
                 entities[0].cooldown = 0.30;
                 rl::playSound(snd_attack);
                 if (0 == entities[i].health) {
                     entities[i].sprite = 39;
                     entities[i].block_movement = false;
-                    note.txt = "Beast fell!";
-                    note.color = rl::LIGHTGRAY;
-                    note.timer = 5.00;
+                	add_note("Beast fell!", rl::LIGHTGRAY, 5);
                 }
             }
         }
@@ -719,17 +708,15 @@ fn void entity_update_all() {
                 float dy = entities[0].py - entities[i].py;
                 float dist = (float)math::sqrt((double)(dx * dx + dy * dy));
 				
-                if (WANDER == entities[i].state && dist < 5.00) {
+                if (entities[i].state == WANDER && dist < 5.00) {
                     entities[i].state = CHASE;
                 }
-                else if (CHASE == entities[i].state && dist > 7) {
+                else if (entities[i].state == CHASE && dist > 7) {
                     entities[i].state = WANDER;
                 }
 				
                 if (dist < 1.20 && rnd() < 0.50 && 0 < entities[0].health) {
-                    note.txt = "Beast hit for 1 dmg!";
-                    note.color = rl::RED;
-                    note.timer = 5.00;
+                	add_note("Beast hit for 1 dmg!", rl::RED, 5.00);
                     entities[i].cooldown = 0.70;
                     entities[i].ix = (int)entities[i].px;
                     entities[i].iy = (int)entities[i].py;
@@ -742,7 +729,7 @@ fn void entity_update_all() {
                     }
                 }
 				
-                if (WANDER == entities[i].state && rnd() < 0.10) {
+                if (entities[i].state == WANDER && rnd() < 0.10) {
                     int j = util_rand_range(0, 4);
                     if (0 == j) {
                         entity_move(i, MOVE_UP);
@@ -757,7 +744,7 @@ fn void entity_update_all() {
                         entity_move(i, MOVE_RIGHT);
                     }
                 }
-                else if (CHASE == entities[i].state && rnd() < 0.10) {
+                else if (entities[i].state == CHASE && rnd() < 0.10) {
                     if (math::abs(dx) > math::abs(dy)) {
                         if (entities[i].px < entities[0].px) {
                             entity_move(i, MOVE_RIGHT);
@@ -1897,62 +1884,57 @@ fn void item_draw_all() {
 		
         if (x == entities[0].ix && y == entities[0].iy) {
             String found_text = string::tformat("Found %s!", loot[i].name);
-            if (POTION_HEALTH == loot[i].kind) {
-                if (9 == inventory[0]) {
-                    continue;
-                }
-                inventory[0] = inventory[0] + 1;
-                add_note(found_text, rl::RED, 5.00);
+            switch (loot[i].kind) {
+            	case POTION_HEALTH:
+	                if (9 == inventory[0]) {
+    	                continue;
+					}
+                	inventory[0]++;
+                	add_note(found_text, rl::RED, 5.00);
+                case POTION_MANA:
+                	if (9 == inventory[0]) {
+                    	continue;
+                	}
+                	inventory[1]++;
+                	add_note(found_text, rl::GREEN, 5.00);
+            	case TURKEY_LEG:
+                	entities[0].power++;
+                	add_note(found_text, rl::ORANGE, 5.00);
+				case ARM_SHIELD:
+                	entities[0].defense++;
+                	found_shield = true;
+                	add_note(found_text, rl::VIOLET, 5.00);
+                case ARM_MAIL:
+            		entities[0].defense++;
+                	found_mail = true;
+                	add_note(found_text, rl::VIOLET, 5.00);
+                case ARM_HELMET:
+                	entities[0].defense++;
+                	found_helmet = true;
+                	add_note(found_text, rl::VIOLET, 5.00);
+                case KEY:
+                	found_key = true;
+                	add_note(found_text, rl::GOLD, 5.00);
+                default:
+                	break;
             }
-            else if (POTION_MANA == loot[i].kind) {
-                if (9 == inventory[0]) {
-                    continue;
-                }
-                inventory[1] = inventory[1] + 1;
-                add_note(found_text, rl::GREEN, 5.00);
-            }
-            else if (TURKEY_LEG == loot[i].kind) {
-                entities[0].power = entities[0].power + 1;
-                add_note(found_text, rl::ORANGE, 5.00);
-            }
-            else if (ARM_SHIELD == loot[i].kind) {
-                entities[0].defense = entities[0].defense + 1;
-                found_shield = true;
-                add_note(found_text, rl::VIOLET, 5.00);
-            }
-            else if (ARM_MAIL == loot[i].kind) {
-                entities[0].defense = entities[0].defense + 1;
-                found_mail = true;
-                add_note(found_text, rl::VIOLET, 5.00);
-            }
-            else if (ARM_HELMET == loot[i].kind) {
-                entities[0].defense = entities[0].defense + 1;
-                found_helmet = true;
-                add_note(found_text, rl::VIOLET, 5.00);
-            }
-            else if (KEY == loot[i].kind) {
-                found_key = true;
-                add_note(found_text, rl::GOLD, 5.00);
-            }
-            if (ROD == loot[i].kind) {
-                found_rod = true;
+			if (ROD == loot[i].kind) {
+				found_rod = true;
                 add_note(found_text, rl::GREEN, 5.00);
                 rl::playSound(snd_cast);
-            }
+			}
             else if (HEART == loot[i].kind) {
-                note.txt = "LEVEL UP!";
-                note.color = rl::PURPLE;
-                note.timer = 5.00;
-                entities[0].level = entities[0].level + 1;
-                entities[0].max_health = (int)((float)entities[0].max_health * ( 1.30 + 0.30 * (float)rnd() ));
-                entities[0].max_mana = entities[0].max_mana + 1;
-                entities[0].health = entities[0].max_health;
-                entities[0].mana = entities[0].max_mana;
-                rl::playSound(snd_levelup);
-            }
+            	add_note("LEVEL UP!", rl::PURPLE, 5.00);
+            	entities[0].level++;
+            	entities[0].max_health = (int)((float)entities[0].max_health * ( 1.30 + 0.30 * (float)rnd() ));
+            	entities[0].max_mana++;
+            	entities[0].health = entities[0].max_health;
+            	entities[0].mana = entities[0].max_mana;
+            	rl::playSound(snd_levelup);
+			}
             else {
-                rl::playSound(snd_pickup);
-            }
+				rl::playSound(snd_pickup);
+			}
             loot[i].found = true;
         }
     }
@@ -1979,10 +1961,10 @@ fn void get_player_input() {
     if (0 > key_delay && intro_hold) {
         if (rl::isKeyPressed(rl::KEY_SPACE)) {
             key_delay = 5;
-            if (INTRO == menu) {
+            if (menu == INTRO) {
                 menu = CONTROLS;
             }
-            else if (CONTROLS == menu) {
+            else if (menu == CONTROLS) {
                 menu = GAME;
                 intro_hold = false;
                 rl::stopSound(snd_melody);
@@ -1992,7 +1974,7 @@ fn void get_player_input() {
         return ;
     }
 	
-    if (0 > key_delay && game_win && WIN == menu) {
+    if (0 > key_delay && game_win && menu == WIN) {
         if (rl::isKeyPressed(rl::KEY_SPACE)) {
             quit_game = true;
         }
@@ -2014,31 +1996,20 @@ fn void get_player_input() {
         }
 		
         if (0 > key_delay && found_rod && rl::isKeyDown(rl::KEY_C) && 0 < entities[0].mana && 0 > entities[0].cooldown) {
-            float px = entities[0].px;
-            float py = entities[0].py;
-            float vx;
-            float vy;
+        	float[<2>] p = { entities[0].px, entities[0].py };
+            float[<2>] v;
             float speed = 8;
-            if (MOVE_UP == last_move) {
-                vy = - 1;
+            switch (last_move) {
+            	case MOVE_UP:    v = {  0, -1 };
+            	case MOVE_DOWN:  v = {  0,  1 };
+            	case MOVE_LEFT:  v = { -1,  0 };
+            	case MOVE_RIGHT: v = {  0,  1 };
+            	default: break;
             }
-            else if (MOVE_DOWN == last_move) {
-                vy = 1;
-            }
-            else if (MOVE_LEFT == last_move) {
-                vx = - 1;
-            }
-            else if (MOVE_RIGHT == last_move) {
-                vx = 1;
-            }
-            vx = vx * speed;
-            vy = vy * speed;
             key_delay = 5;
             entities[0].cooldown = 1.00;
-            magic_ball.px = px;
-            magic_ball.py = py;
-            magic_ball.vx = vx;
-            magic_ball.vy = vy;
+            magic_ball.p = p;
+            magic_ball.v = v * speed;
             magic_ball.active = true;
             entities[0].mana = entities[0].mana - 1;
             rl::playSound(snd_cast);
@@ -2060,7 +2031,7 @@ fn void get_player_input() {
     }
 	
     if (0 > key_delay) {
-        if (INVALID != move_dir) {
+        if (move_dir != INVALID) {
             last_move = move_dir;
             entity_move(0, move_dir);
             key_delay = 4;
@@ -2263,23 +2234,26 @@ fn void main() {
 	t_clock = rl::getTime();
 	
     while (true) {
-        rl::beginDrawing();
-        rl::clearBackground(rl::BLACK);
-        draw_map();
-        if (!intro_hold) {
-            item_draw_all();
-            entity_draw_all();
-        }
-        ui_draw();
-        rl::endDrawing();
-		
-        amort = ( amort + 1 ) % 4;
-        get_player_input();
-        entity_update_all();
-		
-        if (rl::windowShouldClose() || quit_game) {
-            break;
-        }
+    	@pool()
+    	{
+	        rl::beginDrawing();
+	        rl::clearBackground(rl::BLACK);
+	        draw_map();
+	        if (!intro_hold) {
+	            item_draw_all();
+	            entity_draw_all();
+	        }
+	        ui_draw();
+	        rl::endDrawing();
+
+	        amort = ( amort + 1 ) % 4;
+	        get_player_input();
+	        entity_update_all();
+
+	        if (rl::windowShouldClose() || quit_game) {
+	            break;
+	        }
+    	};
     }
     
 	unload_sounds();
