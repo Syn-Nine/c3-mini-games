@@ -1,6 +1,6 @@
 # Dungeon of the Phoenix
 
-Released June 2025
+Released June 2025. Note, this code has some issues that I need to resolve because I made it on an older version of the compiler.
 
 ### Controls:
 - Move: Arrow Keys
